@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from typing import Dict
 
-SECRET_KEY = "secret"  # harus sama dengan yang dipakai Auth Service
+SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
 security = HTTPBearer()

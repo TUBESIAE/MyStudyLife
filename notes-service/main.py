@@ -5,7 +5,7 @@ import jwt
 from datetime import datetime, timedelta
 from models import NoteCreate, NoteOut
 
-SECRET_KEY = "ini_rahasia_ya"  # Samakan dengan Auth Service
+SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
 app = FastAPI()
