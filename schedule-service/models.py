@@ -11,3 +11,9 @@ class Schedule(Base):
     location = Column(String)
     description = Column(String, nullable=True)
     user_id = Column(Integer, index=True)  # diambil dari token JWT
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
