@@ -1,54 +1,30 @@
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.security import OAuth2PasswordRequestForm
-from models import users_db, User
-from schemas import UserRegister, UserLogin, TokenResponse
-from auth import hash_password, verify_password, create_access_token
-from fastapi.middleware.cors import CORSMiddleware
+# main.py
+from fastapi import FastAPI, Depends, HTTPException, Header
+from models import UserIn
+from auth import register_user, login_user, get_current_user
 
 app = FastAPI()
 
-# Untuk testing dari browser/postman (bisa disesuaikan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Endpoint untuk register
+@app.post("/register")
+async def register(user: UserIn):
+    return register_user(user)
 
-@app.post("/register", status_code=status.HTTP_201_CREATED)
-def register(user: UserRegister):
-    # Cek apakah username sudah ada
-    for u in users_db:
-        if u.username == user.username:
-            raise HTTPException(status_code=400, detail="Username sudah dipakai")
-    hashed = hash_password(user.password)
-    new_user = User(username=user.username, hashed_password=hashed)
-    users_db.append(new_user)
-    return {"msg": "User berhasil didaftarkan"}
+# Endpoint untuk login
+@app.post("/login")
+async def login(user: UserIn):
+    return login_user(user)
 
-@app.post("/login", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    # Cari user
-    user = None
-    for u in users_db:
-        if u.username == form_data.username:
-            user = u
-            break
-    if not user:
-        raise HTTPException(status_code=400, detail="Username atau password salah")
+# Endpoint untuk cek info user dari token
+@app.get("/me")
+async def read_users_me(authorization: str = Header(default=None)):
+    if authorization is None or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Bearer token required")
+    token = authorization.split(" ")[1]  # Ambil token setelah "Bearer "
+    user = get_current_user(token)
+    return {"username": user.username, "id": user.id}
 
-    # Cek password
-    if not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=400, detail="Username atau password salah")
-
-    # Buat token
-    token = create_access_token({"sub": user.username})
-    return {"access_token": token, "token_type": "bearer"}
-
-from fastapi import FastAPI
-
-app = FastAPI()
-
+# Endpoint root (yang sudah ada)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
