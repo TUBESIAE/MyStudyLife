@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 import models, schemas, crud
 from database import SessionLocal, engine
@@ -8,8 +8,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+import httpx
 
-SECRET_KEY = "secret"  # Ganti dengan secret yang aman!
+SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -49,12 +50,31 @@ def get_db():
         db.close()
 
 @app.post("/schedule", response_model=schemas.Schedule)
-def create(schedule: schemas.ScheduleCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    # Ambil user dari database berdasarkan username
-    db_user = db.query(models.User).filter(models.User.username == user["sub"]).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return crud.create_schedule(db, schedule, db_user.id)
+def create_schedule(
+    schedule: schemas.ScheduleCreate,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user),
+    request: Request = None
+):
+    # Buat jadwal di database
+    new_schedule = crud.create_schedule(db, schedule, user_id)
+    
+    # Kirim notifikasi ke notify-service
+    notification_data = {
+        "user_id": user_id,
+        "message": f"Kamu punya jadwal baru: {schedule.title} pada {schedule.time}"
+    }
+    try:
+        notify_url = "http://localhost:8003/notify"
+        headers = {}
+        if request and "authorization" in request.headers:
+            headers["Authorization"] = request.headers["authorization"]
+        with httpx.Client() as client:
+            client.post(notify_url, json=notification_data, headers=headers)
+    except Exception as e:
+        print("Gagal mengirim notifikasi:", e)
+    
+    return new_schedule
 
 @app.get("/schedule", response_model=list[schemas.Schedule])
 def read_all(db: Session = Depends(get_db), user=Depends(get_current_user)):

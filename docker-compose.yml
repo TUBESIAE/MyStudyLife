@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=your-secret-key
+    volumes:
+      - ./auth-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  schedule-service:
+    build: ./schedule-service
+    ports:
+      - "8001:8000"
+    environment:
+      - SECRET_KEY=secret
+      - DATABASE_URL=sqlite:///./schedule.db
+    volumes:
+      - ./schedule-service:/app
+      - schedule_data:/app/data
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - auth-service
+
+  notes-service:
+    build: ./notes-service
+    ports:
+      - "8002:8000"
+    environment:
+      - SECRET_KEY=ini_rahasia_ya
+      - DATABASE_URL=sqlite:///./notes.db
+    volumes:
+      - ./notes-service:/app
+      - notes_data:/app/data
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - auth-service
+
+  notify-service:
+    build: ./Notify-service
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./notifications.db
+    volumes:
+      - ./Notify-service:/app
+      - notify_data:/app/data
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - auth-service
+      - schedule-service
+
+volumes:
+  schedule_data:
+  notes_data:
+  notify_data:
+
+networks:
+  default:
+    name: microservices-network
