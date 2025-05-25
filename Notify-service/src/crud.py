@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-import models, schemas
+from . import models, schemas
 from datetime import datetime, timedelta
 
 def create_notification(db: Session, notification: schemas.NotificationCreate):

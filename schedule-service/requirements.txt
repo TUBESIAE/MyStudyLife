@@ -3,3 +3,7 @@ SQLAlchemy
 pydantic
 uvicorn
 python-dotenv
+python-jose
+passlib[bcrypt]
+httpx
+python-multipart
