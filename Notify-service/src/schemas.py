@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional  # Add this import
 
 class NotificationBase(BaseModel):
     user_id: int
@@ -13,14 +14,14 @@ class Notification(NotificationBase):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UpcomingSchedule(BaseModel):
     user_id: int
     title: str
     time: datetime
     location: str
-    description: str | None = None
+    description: Optional[str] = None  # Change here
 
 class UpcomingSchedulesResponse(BaseModel):
     schedules: list[UpcomingSchedule]

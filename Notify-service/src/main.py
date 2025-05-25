@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 import jwt
-import models, schemas, crud
-from database import SessionLocal, engine
+from . import models, schemas, crud
+from .database import SessionLocal, engine
 from datetime import datetime, timedelta
 import logging
 
