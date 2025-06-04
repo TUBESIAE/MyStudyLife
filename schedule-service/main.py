@@ -54,15 +54,17 @@ def get_db():
 def create_schedule(
     schedule: schemas.ScheduleCreate,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user),
+    user=Depends(get_current_user),
     request: Request = None
 ):
-    # Buat jadwal di database
-    new_schedule = crud.create_schedule(db, schedule, user_id)
-    
-    # Kirim notifikasi ke notify-service
+    db_user = db.query(models.User).filter(models.User.username == user["sub"]).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    new_schedule = crud.create_schedule(db, schedule, db_user.id)
+
+    # Kirim notifikasi ke notify-service (opsional)
     notification_data = {
-        "user_id": user_id,
+        "user_id": db_user.id,
         "message": f"Kamu punya jadwal baru: {schedule.title} pada {schedule.time}"
     }
     try:
@@ -74,33 +76,43 @@ def create_schedule(
             client.post(notify_url, json=notification_data, headers=headers)
     except Exception as e:
         print("Gagal mengirim notifikasi:", e)
-    
+
     return new_schedule
 
 @app.get("/schedule", response_model=list[schemas.Schedule])
-def read_all(db: Session = Depends(get_db), user=Depends(get_current_user)):
+def read_all_schedules(db: Session = Depends(get_db), user=Depends(get_current_user)):
     db_user = db.query(models.User).filter(models.User.username == user["sub"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     return crud.get_user_schedules(db, db_user.id)
 
 @app.put("/schedule/{schedule_id}", response_model=schemas.Schedule)
-def update(schedule_id: int, schedule: schemas.ScheduleCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    # Ambil user dari database berdasarkan username
+def update_schedule(
+    schedule_id: int,
+    schedule: schemas.ScheduleCreate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
     db_user = db.query(models.User).filter(models.User.username == user["sub"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    return crud.update_schedule(db, schedule_id, schedule, db_user.id)
+    updated = crud.update_schedule(db, schedule_id, schedule, db_user.id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Schedule not found or not yours")
+    return updated
 
 @app.delete("/schedule/{schedule_id}")
-def delete(schedule_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    # Ambil user dari database berdasarkan username
+def delete_schedule(
+    schedule_id: int,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
     db_user = db.query(models.User).filter(models.User.username == user["sub"]).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     deleted = crud.delete_schedule(db, schedule_id, db_user.id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="Schedule not found or not yours")
     return {"detail": "Deleted"}
 
 @app.post("/register")
