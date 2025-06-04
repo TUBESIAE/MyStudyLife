@@ -120,19 +120,41 @@
                 <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Jadwal</h5>
-                        <button class="btn btn-sm btn-success" disabled>
+                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
                             <i class="bi bi-plus-lg"></i> Jadwal
                         </button>
                     </div>
                     <div class="card-body">
                         {% if schedules and schedules|length > 0 %}
-                        <ul class="list-group">
-                            {% for sched in schedules %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ sched.title if sched.title else sched }}
-                                <span class="badge bg-primary rounded-pill">
-                                    <i class="bi bi-calendar-event"></i>
-                                </span>
+                        <ul class="list-group list-group-flush">
+                            {% for schedule in schedules %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ schedule.title }}</h6>
+                                        <p class="mb-1 text-muted"><small>{{ schedule.time }}</small></p>
+                                        <p class="mb-0"><small>{{ schedule.location }}</small></p>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-warning edit-schedule"
+                                                data-id="{{ schedule.id }}"
+                                                data-title="{{ schedule.title }}"
+                                                data-time="{{ schedule.time }}"
+                                                data-location="{{ schedule.location }}"
+                                                data-description="{{ schedule.description }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editScheduleModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-schedule"
+                                                data-id="{{ schedule.id }}"
+                                                data-title="{{ schedule.title }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#deleteScheduleModal">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </li>
                             {% endfor %}
                         </ul>
@@ -147,27 +169,36 @@
                 
                 <!-- Notifications -->
                 <div class="card mb-3">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Notifikasi</h5>
+                        <button type="button" class="btn btn-sm btn-outline-warning refresh-notifications">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
                     </div>
                     <div class="card-body">
-                        {% if notifications and notifications|length > 0 %}
-                        <ul class="list-group">
-                            {% for notif in notifications %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ notif.title if notif.title else notif }}
-                                <span class="badge bg-warning rounded-pill">
-                                    <i class="bi bi-bell"></i>
-                                </span>
-                            </li>
-                            {% endfor %}
+                        <ul class="list-group list-group-flush" id="notificationList">
+                            {% if notifications and notifications|length > 0 %}
+                                {% for notif in notifications %}
+                                <li class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ notif.title }}</h6>
+                                            <p class="mb-1">{{ notif.message }}</p>
+                                            <small class="text-muted">{{ notif.scheduled_time }}</small>
+                                        </div>
+                                        <span class="badge bg-warning rounded-pill">
+                                            <i class="bi bi-bell"></i>
+                                        </span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <i class="bi bi-bell text-muted"></i>
+                                    <p class="text-muted">Belum ada notifikasi.</p>
+                                </div>
+                            {% endif %}
                         </ul>
-                        {% else %}
-                        <div class="text-center py-3">
-                            <i class="bi bi-bell text-muted"></i>
-                            <p class="text-muted">Belum ada notifikasi.</p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -275,6 +306,102 @@
         </div>
     </div>
 
+    <!-- Add Schedule Modal -->
+    <div class="modal fade" id="addScheduleModal" tabindex="-1" aria-labelledby="addScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addScheduleModalLabel">Tambah Jadwal Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addScheduleForm" action="/add-schedule" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="scheduleTitle" class="form-label">Judul</label>
+                            <input type="text" class="form-control" id="scheduleTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="scheduleTime" class="form-label">Waktu</label>
+                            <input type="datetime-local" class="form-control" id="scheduleTime" name="time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="scheduleLocation" class="form-label">Lokasi</label>
+                            <input type="text" class="form-control" id="scheduleLocation" name="location" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="scheduleDescription" class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="scheduleDescription" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-success">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Schedule Modal -->
+    <div class="modal fade" id="editScheduleModal" tabindex="-1" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="editScheduleModalLabel">Edit Jadwal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editScheduleForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="editScheduleId" name="id">
+                        <div class="mb-3">
+                            <label class="form-label">Judul</label>
+                            <input type="text" class="form-control" id="editScheduleTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Waktu</label>
+                            <input type="datetime-local" class="form-control" id="editScheduleTime" name="time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lokasi</label>
+                            <input type="text" class="form-control" id="editScheduleLocation" name="location" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea class="form-control" id="editScheduleDescription" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-warning">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Schedule Modal -->
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-labelledby="deleteScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteScheduleModalLabel">Hapus Jadwal</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin menghapus jadwal "<span id="deleteScheduleTitle"></span>"?</p>
+                    <p class="text-danger"><strong>Perhatian:</strong> Tindakan ini tidak dapat dibatalkan.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <form id="deleteScheduleForm" method="post">
+                        <input type="hidden" id="deleteScheduleId" name="id">
+                        <button type="submit" class="btn btn-danger">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>    <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -338,6 +465,291 @@
                     deleteNoteTitle.textContent = noteTitle;
                     deleteNoteId.value = noteId;
                 });
+            });
+            
+            // Edit Schedule
+            const editScheduleButtons = document.querySelectorAll('.edit-schedule');
+            editScheduleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const title = this.getAttribute('data-title');
+                    const time = this.getAttribute('data-time');
+                    const location = this.getAttribute('data-location');
+                    const description = this.getAttribute('data-description');
+                    
+                    document.getElementById('editScheduleId').value = id;
+                    document.getElementById('editScheduleTitle').value = title;
+                    document.getElementById('editScheduleTime').value = time;
+                    document.getElementById('editScheduleLocation').value = location;
+                    document.getElementById('editScheduleDescription').value = description;
+                });
+            });
+            
+            // Delete Schedule
+            const deleteScheduleButtons = document.querySelectorAll('.delete-schedule');
+            deleteScheduleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    const title = this.getAttribute('data-title');
+                    
+                    document.getElementById('deleteScheduleId').value = id;
+                    document.getElementById('deleteScheduleTitle').textContent = title;
+                });
+            });
+        });
+
+        // Fungsi untuk memperbarui badge notifikasi
+        function updateNotificationBadge(count) {
+            const badge = document.querySelector('.badge.bg-warning');
+            if (badge) {
+                badge.textContent = count + ' Notifikasi';
+            }
+        }
+
+        // Fungsi untuk memperbarui list jadwal
+        function updateScheduleList(schedules) {
+            const scheduleList = document.querySelector('.list-group');
+            if (schedules && schedules.length > 0) {
+                let scheduleHtml = '';
+                schedules.forEach(schedule => {
+                    scheduleHtml += `
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${schedule.title}</strong>
+                            <p class="mb-0">${new Date(schedule.time).toLocaleString()}</p>
+                            <small class="text-muted">${schedule.location}</small>
+                        </div>
+                        <span class="badge bg-success rounded-pill">
+                            <i class="bi bi-calendar-event"></i>
+                        </span>
+                    </li>`;
+                });
+                scheduleList.innerHTML = scheduleHtml;
+            }
+        }
+
+        // Fungsi untuk memuat notifikasi
+        function loadNotifications() {
+            fetch('/notifications', {
+                headers: {
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('access_token')
+                }
+            })
+            .then(response => response.json())
+            .then(notifications => {
+                const notificationList = document.querySelector('#notificationList');
+                if (notifications && notifications.length > 0) {
+                    let notifHtml = '';
+                    notifications.forEach(notif => {
+                        notifHtml += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${notif.title || 'Notifikasi'}</strong>
+                                <p class="mb-0">${notif.message}</p>
+                                <small class="text-muted">${new Date(notif.scheduled_time).toLocaleString()}</small>
+                            </div>
+                            <span class="badge bg-warning rounded-pill">
+                                <i class="bi bi-bell"></i>
+                            </span>
+                        </li>`;
+                    });
+                    notificationList.innerHTML = notifHtml;
+                    updateNotificationBadge(notifications.length);
+                } else {
+                    notificationList.innerHTML = `
+                    <div class="text-center py-3">
+                        <i class="bi bi-bell text-muted"></i>
+                        <p class="text-muted">Belum ada notifikasi.</p>
+                    </div>`;
+                    updateNotificationBadge(0);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading notifications:', error);
+                showError('Gagal memuat notifikasi');
+            });
+        }
+
+        // Tambah event listener untuk form jadwal
+        document.getElementById('addScheduleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const scheduleData = {
+                title: formData.get('title'),
+                time: formData.get('time'),
+                location: formData.get('location'),
+                description: formData.get('description')
+            };
+
+            fetch('/add-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + sessionStorage.getItem('access_token')
+                },
+                body: JSON.stringify(scheduleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Jadwal berhasil ditambahkan');
+                    bootstrap.Modal.getInstance(document.getElementById('addScheduleModal')).hide();
+                    loadSchedules();
+                } else {
+                    showError(data.message || 'Gagal menambahkan jadwal');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Gagal menambahkan jadwal');
+            });
+        });
+
+        document.getElementById('editScheduleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const scheduleData = {
+                id: document.getElementById('editScheduleId').value,
+                title: document.querySelector('#editScheduleForm input[name="title"]').value,
+                time: document.querySelector('#editScheduleForm input[name="time"]').value,
+                location: document.querySelector('#editScheduleForm input[name="location"]').value,
+                description: document.querySelector('#editScheduleForm textarea[name="description"]').value
+            };
+
+            fetch('/edit-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify(scheduleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Jadwal berhasil diperbarui');
+                    bootstrap.Modal.getInstance(document.getElementById('editScheduleModal')).hide();
+                    window.location.reload();
+                } else {
+                    showError(data.message || 'Gagal memperbarui jadwal');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Gagal memperbarui jadwal');
+            });
+        });
+
+        // Fungsi untuk menampilkan pesan sukses/error
+        function showSuccess(message) {
+            const alert = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+            document.querySelector('.container').insertAdjacentHTML('afterbegin', alert);
+        }
+
+        function showError(message) {
+            const alert = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+            document.querySelector('.container').insertAdjacentHTML('afterbegin', alert);
+        }
+
+        // Load data saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            loadNotifications();
+            // Auto refresh setiap 30 detik
+            setInterval(loadNotifications, 30000);
+        });
+
+        // Refresh notifications every 30 seconds
+        setInterval(function() {
+            fetch('/notifications')
+                .then(response => response.json())
+                .then(notifications => {
+                    const notificationList = document.getElementById('notificationList');
+                    if (notifications && notifications.length > 0) {
+                        let html = '';
+                        notifications.forEach(notif => {
+                            html += `
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">${notif.title || 'Notifikasi'}</h6>
+                                        <p class="mb-1">${notif.message}</p>
+                                        <small class="text-muted">${new Date(notif.scheduled_time).toLocaleString()}</small>
+                                    </div>
+                                    <span class="badge bg-warning rounded-pill">
+                                        <i class="bi bi-bell"></i>
+                                    </span>
+                                </div>
+                            </li>`;
+                        });
+                        notificationList.innerHTML = html;
+                    }
+                });
+        }, 30000);
+
+        // Manual refresh button
+        document.querySelector('.refresh-notifications').addEventListener('click', function() {
+            this.querySelector('i').classList.add('rotate');
+            fetch('/notifications')
+                .then(response => response.json())
+                .then(notifications => {
+                    const notificationList = document.getElementById('notificationList');
+                    if (notifications && notifications.length > 0) {
+                        let html = '';
+                        notifications.forEach(notif => {
+                            html += `
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">${notif.title || 'Notifikasi'}</h6>
+                                        <p class="mb-1">${notif.message}</p>
+                                        <small class="text-muted">${new Date(notif.scheduled_time).toLocaleString()}</small>
+                                    </div>
+                                    <span class="badge bg-warning rounded-pill">
+                                        <i class="bi bi-bell"></i>
+                                    </span>
+                                </div>
+                            </li>`;
+                        });
+                        notificationList.innerHTML = html;
+                    }
+                });
+        });
+
+        document.getElementById('deleteScheduleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const scheduleId = document.getElementById('deleteScheduleId').value;
+            
+            fetch('/delete-schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: scheduleId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteScheduleModal'));
+                    modal.hide();
+                    showSuccess('Jadwal berhasil dihapus');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showError(data.message || 'Gagal menghapus jadwal');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Gagal menghapus jadwal');
             });
         });
     </script>
