@@ -1,20 +1,22 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional  # Add this import
+from typing import Optional
 
 class NotificationBase(BaseModel):
-    user_id: int
+    title: str
     message: str
+    scheduled_time: datetime
 
 class NotificationCreate(NotificationBase):
-    pass
+    user_id: int
 
 class Notification(NotificationBase):
     id: int
-    timestamp: datetime
+    user_id: int
+    created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class UpcomingSchedule(BaseModel):
     user_id: int
