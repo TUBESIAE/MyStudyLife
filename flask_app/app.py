@@ -78,9 +78,9 @@ def dashboard():
     try:
         resp = requests.get(f'{NOTES_SERVICE_URL}/notes', headers=headers)
         if resp.status_code == 200:
-            notes = resp.json().get('notes', [])
-    except Exception:
-        pass
+            notes = resp.json()
+    except Exception as e:
+        flash(f'Gagal mengambil data catatan: {str(e)}', 'danger')
     # Ambil data schedule
     try:
         resp = requests.get(f'{SCHEDULE_SERVICE_URL}/schedules', headers=headers)
@@ -101,6 +101,90 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+# Notes CRUD operations
+@app.route('/add-note', methods=['POST'])
+def add_note():
+    if 'access_token' not in session:
+        return redirect(url_for('login'))
+    
+    title = request.form.get('title')
+    content = request.form.get('content')
+    
+    if not title or not content:
+        flash('Judul dan isi catatan harus diisi!', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    try:
+        resp = requests.post(
+            f'{NOTES_SERVICE_URL}/notes', 
+            json={"title": title, "content": content},
+            headers=headers
+        )
+        if resp.status_code == 201 or resp.status_code == 200:
+            flash('Catatan berhasil ditambahkan!', 'success')
+        else:
+            flash(f'Gagal menambahkan catatan: {resp.text}', 'danger')
+    except Exception as e:
+        flash(f'Terjadi kesalahan: {str(e)}', 'danger')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit-note', methods=['POST'])
+def edit_note():
+    if 'access_token' not in session:
+        return redirect(url_for('login'))
+    
+    note_id = request.form.get('id')
+    title = request.form.get('title')
+    content = request.form.get('content')
+    
+    if not note_id or not title or not content:
+        flash('Data tidak lengkap!', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    try:
+        resp = requests.put(
+            f'{NOTES_SERVICE_URL}/notes/{note_id}', 
+            json={"title": title, "content": content},
+            headers=headers
+        )
+        if resp.status_code == 200:
+            flash('Catatan berhasil diperbarui!', 'success')
+        else:
+            flash(f'Gagal memperbarui catatan: {resp.text}', 'danger')
+    except Exception as e:
+        flash(f'Terjadi kesalahan: {str(e)}', 'danger')
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/delete-note', methods=['POST'])
+def delete_note():
+    if 'access_token' not in session:
+        return redirect(url_for('login'))
+    
+    note_id = request.form.get('id')
+    
+    if not note_id:
+        flash('ID catatan tidak valid!', 'warning')
+        return redirect(url_for('dashboard'))
+    
+    headers = {"Authorization": f"Bearer {session['access_token']}"}
+    try:
+        resp = requests.delete(
+            f'{NOTES_SERVICE_URL}/notes/{note_id}', 
+            headers=headers
+        )
+        if resp.status_code == 200 or resp.status_code == 204:
+            flash('Catatan berhasil dihapus!', 'success')
+        else:
+            flash(f'Gagal menghapus catatan: {resp.text}', 'danger')
+    except Exception as e:
+        flash(f'Terjadi kesalahan: {str(e)}', 'danger')
+    
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
