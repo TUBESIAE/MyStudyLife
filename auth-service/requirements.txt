@@ -1,6 +1,8 @@
-fastapi
-uvicorn
-pydantic
+fastapi==0.68.1
+uvicorn==0.15.0
+pydantic==1.8.2
 sqlalchemy
 PyJWT
-passlib[bcrypt]
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.5
+httpx==0.24.1

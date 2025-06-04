@@ -1,5 +1,8 @@
-fastapi
-uvicorn
-pydantic
-PyJWT
-sqlalchemy
+fastapi==0.68.1
+uvicorn==0.15.0
+pydantic==1.8.2
+PyJWT==2.10.1
+sqlalchemy==1.4.23
+httpx==0.24.1
+python-jose==3.3.0
+python-multipart==0.0.5

@@ -36,7 +36,7 @@ def login_user(user: UserIn):
     for db_user in fake_users_db:
         if db_user.username == user.username and verify_password(user.password, db_user.hashed_password):
             # Buat token JWT
-            access_token = create_access_token(data={"sub": db_user.username})
+            access_token = create_access_token(data={"sub": str(db_user.id)})
             return {"access_token": access_token, "token_type": "bearer"}
     raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -44,11 +44,13 @@ def login_user(user: UserIn):
 def get_current_user(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user_id: str = payload.get("sub") # Mengambil ID sebagai string
+        if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
+        # Mengubah user_id menjadi integer untuk mencari user
+        user_id_int = int(user_id)
         for user in fake_users_db:
-            if user.username == username:
+            if user.id == user_id_int:
                 return user
         raise HTTPException(status_code=404, detail="User not found")
     except jwt.PyJWTError:

@@ -46,12 +46,41 @@ def send_notification(
         raise HTTPException(status_code=403, detail="User ID mismatch")
     return crud.create_notification(db, notification)
 
+@app.get("/notify", response_model=list[schemas.Notification])
+def get_all_notifications(
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user)
+):
+    return crud.get_user_notifications(db, user_id)
+
 @app.get("/notify/upcoming", response_model=list[schemas.Notification])
 def get_upcoming_notifications(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_current_user)
 ):
     return crud.get_upcoming_notifications(db, user_id)
+
+@app.delete("/notify/{notification_id}")
+def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user)
+):
+    notification = crud.get_notification(db, notification_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    if notification.user_id != int(user_id):
+        raise HTTPException(status_code=403, detail="Not authorized to delete this notification")
+    crud.delete_notification(db, notification_id)
+    return {"detail": "Notification deleted"}
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "notify-service",
+        "version": "1.0.0"
+    }
 
 @app.on_event("startup")
 def startup_event():

@@ -1,12 +1,9 @@
-# utils.py
-from passlib.context import CryptContext
 from fastapi import HTTPException
 import os
 from typing import Dict
 import time
-
-# Konfigurasi hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import httpx
+import jwt
 
 # Service configuration
 SERVICE_CONFIG = {
@@ -50,16 +47,33 @@ class CircuitBreaker:
             return False
         return True
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+# Auth service circuit breaker
+auth_circuit_breaker = CircuitBreaker("auth_service")
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+async def validate_token(token: str) -> Dict:
+    if not auth_circuit_breaker.can_execute():
+        raise HTTPException(status_code=503, detail="Auth service is currently unavailable")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{SERVICE_CONFIG['auth_service']}/me",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            if response.status_code == 200:
+                auth_circuit_breaker.record_success()
+                return response.json()
+            else:
+                auth_circuit_breaker.record_failure()
+                raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        auth_circuit_breaker.record_failure()
+        raise HTTPException(status_code=503, detail="Auth service error")
 
 # Health check response
 def get_health_status() -> Dict:
     return {
         "status": "healthy",
-        "service": "auth-service",
+        "service": "notes-service",
         "version": "1.0.0"
-    }
+    } 

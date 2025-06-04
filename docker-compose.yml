@@ -4,54 +4,98 @@ services:
   auth-service:
     build: ./auth-service
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
-      - SECRET_KEY=your-secret-key
+      - SECRET_KEY=supersecretkey
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTES_SERVICE_URL=http://notes-service:8000
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8000
+      - NOTIFY_SERVICE_URL=http://notify-service:8000
     volumes:
       - ./auth-service:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   schedule-service:
     build: ./schedule-service
     ports:
-      - "8001:8000"
+      - "8003:8000"
     environment:
-      - SECRET_KEY=secret
+      - SECRET_KEY=supersecretkey
       - DATABASE_URL=sqlite:///./schedule.db
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTES_SERVICE_URL=http://notes-service:8000
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8000
+      - NOTIFY_SERVICE_URL=http://notify-service:8000
     volumes:
       - ./schedule-service:/app
       - schedule_data:/app/data
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - auth-service
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   notes-service:
     build: ./notes-service
     ports:
       - "8002:8000"
     environment:
-      - SECRET_KEY=ini_rahasia_ya
+      - SECRET_KEY=supersecretkey
       - DATABASE_URL=sqlite:///./notes.db
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTES_SERVICE_URL=http://notes-service:8000
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8000
+      - NOTIFY_SERVICE_URL=http://notify-service:8000
     volumes:
       - ./notes-service:/app
       - notes_data:/app/data
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - auth-service
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   notify-service:
     build: ./Notify-service
     ports:
-      - "8003:8000"
+      - "8004:8000"
     environment:
       - DATABASE_URL=sqlite:///./notifications.db
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTES_SERVICE_URL=http://notes-service:8000
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8000
+      - NOTIFY_SERVICE_URL=http://notify-service:8000
     volumes:
       - ./Notify-service:/app
       - notify_data:/app/data
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - auth-service
-      - schedule-service
+      auth-service:
+        condition: service_healthy
+      schedule-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   schedule_data:

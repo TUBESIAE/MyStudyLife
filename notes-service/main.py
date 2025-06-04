@@ -1,12 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from typing import List, Optional
 import sqlite3
-import jwt
-from datetime import datetime, timedelta
+from datetime import datetime
 from models import NoteCreate, NoteOut
+from utils import validate_token, get_health_status
+import logging
 
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -32,72 +34,86 @@ def init_db():
 
 init_db()
 
-# Auth helper
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return get_health_status()
 
-def get_current_user(token: str = Depends(lambda: None)):
-    from fastapi import Header
-    def _get_token(authorization: Optional[str] = Header(None)):
-        if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Missing or invalid token")
-        return authorization.split(" ", 1)[1]
-    token = _get_token()
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("user_id")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-        return user_id
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    token = authorization.split(" ", 1)[1]
+    return await validate_token(token)
 
 @app.post("/notes", response_model=NoteOut)
-def create_note(note: NoteCreate, user_id: int = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    now = datetime.utcnow().isoformat()
-    c.execute("INSERT INTO notes (user_id, title, content, created_at) VALUES (?, ?, ?, ?)", (user_id, note.title, note.content, now))
-    note_id = c.lastrowid
-    conn.commit()
-    c.execute("SELECT * FROM notes WHERE id=?", (note_id,))
-    row = c.fetchone()
-    conn.close()
-    return NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"])
+async def create_note(note: NoteCreate, user: dict = Depends(get_current_user)):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("INSERT INTO notes (user_id, title, content, created_at) VALUES (?, ?, ?, ?)", 
+                 (user["id"], note.title, note.content, now))
+        note_id = c.lastrowid
+        conn.commit()
+        c.execute("SELECT * FROM notes WHERE id=?", (note_id,))
+        row = c.fetchone()
+        conn.close()
+        return NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"])
+    except Exception as e:
+        logger.error(f"Error in create_note: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/notes", response_model=List[NoteOut])
-def get_notes(user_id: int = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM notes WHERE user_id=? ORDER BY created_at DESC", (user_id,))
-    rows = c.fetchall()
-    conn.close()
-    return [NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"]) for row in rows]
+async def get_notes(user: dict = Depends(get_current_user)):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM notes WHERE user_id=? ORDER BY created_at DESC", (user["id"],))
+        rows = c.fetchall()
+        conn.close()
+        return [NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"]) for row in rows]
+    except Exception as e:
+        logger.error(f"Error in get_notes: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.put("/notes/{note_id}", response_model=NoteOut)
-def update_note(note_id: int, note: NoteCreate, user_id: int = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM notes WHERE id=? AND user_id=?", (note_id, user_id))
-    row = c.fetchone()
-    if not row:
+async def update_note(note_id: int, note: NoteCreate, user: dict = Depends(get_current_user)):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM notes WHERE id=? AND user_id=?", (note_id, user["id"]))
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Note not found")
+        c.execute("UPDATE notes SET title=?, content=? WHERE id=?", (note.title, note.content, note_id))
+        conn.commit()
+        c.execute("SELECT * FROM notes WHERE id=?", (note_id,))
+        row = c.fetchone()
         conn.close()
-        raise HTTPException(status_code=404, detail="Note not found")
-    c.execute("UPDATE notes SET title=?, content=? WHERE id=?", (note.title, note.content, note_id))
-    conn.commit()
-    c.execute("SELECT * FROM notes WHERE id=?", (note_id,))
-    row = c.fetchone()
-    conn.close()
-    return NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"])
+        return NoteOut(id=row["id"], title=row["title"], content=row["content"], created_at=row["created_at"])
+    except Exception as e:
+        logger.error(f"Error in update_note: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.delete("/notes/{note_id}")
-def delete_note(note_id: int, user_id: int = Depends(get_current_user)):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM notes WHERE id=? AND user_id=?", (note_id, user_id))
-    row = c.fetchone()
-    if not row:
+async def delete_note(note_id: int, user: dict = Depends(get_current_user)):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM notes WHERE id=? AND user_id=?", (note_id, user["id"]))
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Note not found")
+        c.execute("DELETE FROM notes WHERE id=?", (note_id,))
+        conn.commit()
         conn.close()
-        raise HTTPException(status_code=404, detail="Note not found")
-    c.execute("DELETE FROM notes WHERE id=?", (note_id,))
-    conn.commit()
-    conn.close()
-    return {"msg": "Note deleted"}
+        return {"msg": "Note deleted"}
+    except Exception as e:
+        logger.error(f"Error in delete_note: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/")
+async def root():
+    return {"message": "Notes Service is running"}
