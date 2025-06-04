@@ -22,7 +22,7 @@ async def register(user: UserIn):
     try:
         return register_user(user)
     except Exception as e:
-        logger.error(f"Error in register: {str(e)}")
+        logger.error(f"Error in register: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Endpoint untuk login
@@ -31,7 +31,7 @@ async def login(user: UserIn):
     try:
         return login_user(user)
     except Exception as e:
-        logger.error(f"Error in login: {str(e)}")
+        logger.error(f"Error in login: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Endpoint untuk cek info user dari token
@@ -44,7 +44,7 @@ async def read_users_me(authorization: str = Header(default=None)):
         user = get_current_user(token)
         return {"username": user.username, "id": user.id}
     except Exception as e:
-        logger.error(f"Error in read_users_me: {str(e)}")
+        logger.error(f"Error in read_users_me: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Endpoint root
