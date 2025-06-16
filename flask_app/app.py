@@ -18,8 +18,6 @@ NOTIFY_SERVICE_URL = 'http://localhost:8004'
 
 @app.route('/')
 def home():
-    if 'access_token' in session:
-        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
