@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MyStudyLife{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h1>
+        <p class="lead">Welcome back, {{ current_user.username }}!</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Notes Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sticky-note me-2"></i>Notes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newNoteModal">
+                        <i class="fas fa-plus me-2"></i>New Note
+                    </button>
+                </div>
+                <div id="notesList">
+                    {% if notes %}
+                        {% for note in notes %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ note.title }}</h5>
+                                <p class="card-text">{{ note.content }}</p>
+                                <small class="text-muted">Created: {{ note.created_at }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No notes yet
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Schedule
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newEventModal">
+                        <i class="fas fa-plus me-2"></i>New Event
+                    </button>
+                </div>
+                <div id="scheduleList">
+                    {% if schedule %}
+                        {% for event in schedule %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ event.title }}</h5>
+                                <p class="card-text">{{ event.description }}</p>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">Date: {{ event.date }}</small>
+                                    <small class="text-muted">Time: {{ event.time }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No events scheduled
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Notifications Section -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bell me-2"></i>Notifications
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="notificationsList">
+                    {% if notifications %}
+                        {% for notification in notifications %}
+                        <div class="alert alert-info mb-2">
+                            <i class="fas fa-info-circle me-2"></i>{{ notification.message }}
+                            <small class="float-end">{{ notification.created_at }}</small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No notifications
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Note Modal -->
+<div class="modal fade" id="newNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newNoteForm">
+                    <div class="mb-3">
+                        <label for="noteTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="noteTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="noteContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="noteContent" rows="4" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNoteBtn">Save Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Event Modal -->
+<div class="modal fade" id="newEventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newEventForm">
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="eventTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="eventDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="eventTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventLocation" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="eventLocation" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="eventDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveEventBtn">Save Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save Note
+    document.getElementById('saveNoteBtn').addEventListener('click', function() {
+        const title = document.getElementById('noteTitle').value;
+        const content = document.getElementById('noteContent').value;
+        
+        fetch('/notes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                content: content
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json().then(newNote => {
+                    console.log('New note created:', newNote);
+                    const notesList = document.getElementById('notesList');
+                    if (!notesList) {
+                        console.error('Error: notesList element not found!');
+                        alert('Note saved, but failed to locate notes list for update.');
+                        return;
+                    }
+                    const newNoteHtml = `
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">${newNote.title}</h5>
+                                <p class="card-text">${newNote.content}</p>
+                                <small class="text-muted">Created: ${newNote.created_at}</small>
+                            </div>
+                        </div>
+                    `;
+                    // Remove "No notes yet" message if present
+                    const noNotesMessage = notesList.querySelector('.text-center.text-muted');
+                    if (noNotesMessage && noNotesMessage.textContent.includes('No notes yet')) {
+                        notesList.innerHTML = '';
+                    }
+                    notesList.insertAdjacentHTML('afterbegin', newNoteHtml); // Add to top
+                    console.log('New note HTML inserted into notesList.');
+
+                    // Close modal and clear form by simulating click on dismiss button
+                    const newNoteModalElement = document.getElementById('newNoteModal');
+                    const dismissButton = newNoteModalElement.querySelector('[data-bs-dismiss="modal"]');
+                    if (dismissButton) {
+                        dismissButton.click();
+                        console.log('Note modal dismiss button clicked.');
+                    } else {
+                        console.warn('Note modal dismiss button not found.');
+                        // Fallback if dismiss button not found
+                        const modalInstance = bootstrap.Modal.getInstance(newNoteModalElement);
+                        if (modalInstance) modalInstance.hide();
+                    }
+                    document.getElementById('newNoteForm').reset();
+                    console.log('Note form reset.');
+
+                }).catch(e => {
+                    console.error('Error parsing new note response or updating UI:', e);
+                    alert('Note saved, but failed to update list. Check console for details.');
+                });
+            } else {
+                return response.json().then(data => {
+                    let errorMessage = 'An error occurred';
+                    if (data.error) {
+                        if (typeof data.error === 'string') {
+                            errorMessage = data.error;
+                        } else if (Array.isArray(data.error)) {
+                            errorMessage = data.error.map(err => {
+                                let msg = err.msg;
+                                if (err.loc && err.loc.length > 0) {
+                                    msg = `${err.loc.join('.')}. ${msg}`;
+                                }
+                                return msg;
+                            }).join('\n');
+                        } else if (data.error && typeof data.error === 'object' && data.error.detail) {
+                            if (Array.isArray(data.error.detail)) {
+                                errorMessage = data.error.detail.map(err => {
+                                    let msg = err.msg;
+                                    if (err.loc && err.loc.length > 0) {
+                                        msg = `${err.loc.join('.')}. ${msg}`;
+                                    }
+                                    return msg;
+                                }).join('\n');
+                            } else {
+                                errorMessage = data.error.detail;
+                            }
+                        }
+                    } else if (data.detail) { // FastAPI error format
+                        if (Array.isArray(data.detail)) {
+                            errorMessage = data.detail.map(err => {
+                                let msg = err.msg;
+                                if (err.loc && err.loc.length > 0) {
+                                    msg = `${err.loc.join('.')}. ${msg}`;
+                                }
+                                return msg;
+                            }).join('\n');
+                        } else {
+                            errorMessage = data.detail;
+                        }
+                    }
+                    alert('Error: ' + errorMessage);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error saving note:', error);
+            alert('Network error or unexpected response. Check console for details.');
+        });
+    });
+
+    // Save Event
+    document.getElementById('saveEventBtn').addEventListener('click', function() {
+        const title = document.getElementById('eventTitle').value;
+        const date = document.getElementById('eventDate').value;
+        const time = document.getElementById('eventTime').value;
+        const location = document.getElementById('eventLocation').value;
+        const description = document.getElementById('eventDescription').value;
+        
+        fetch('/events', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                date: date,
+                time: time,
+                location: location,
+                description: description
+            })
+        })
+        .then(response => {
+            console.log('Full event save response:', response);
+            if (response.ok) {
+                response.json().then(newEvent => {
+                    console.log('New event created:', newEvent);
+                    const scheduleList = document.getElementById('scheduleList');
+                    if (!scheduleList) {
+                        console.error('Error: scheduleList element not found!');
+                        alert('Event saved, but failed to locate schedule list for update.');
+                        return;
+                    }
+                    const newEventHtml = `
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">${newEvent.title}</h5>
+                                <p class="card-text">${newEvent.description || ''}</p>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">Date: ${newEvent.date}</small>
+                                    <small class="text-muted">Time: ${newEvent.time}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    // Remove "No events scheduled" message if present
+                    const noEventsMessage = scheduleList.querySelector('.text-center.text-muted');
+                    if (noEventsMessage && noEventsMessage.textContent.includes('No events scheduled')) {
+                        scheduleList.innerHTML = '';
+                    }
+                    scheduleList.insertAdjacentHTML('afterbegin', newEventHtml); // Add to top
+                    console.log('New event HTML inserted into scheduleList.');
+
+                    // Close modal and clear form by simulating click on dismiss button
+                    const newEventModalElement = document.getElementById('newEventModal');
+                    const dismissButton = newEventModalElement.querySelector('[data-bs-dismiss="modal"]');
+                    if (dismissButton) {
+                        dismissButton.click();
+                        console.log('Event modal dismiss button clicked.');
+                    } else {
+                        console.warn('Event modal dismiss button not found.');
+                        // Fallback if dismiss button not found
+                        const modalInstance = bootstrap.Modal.getInstance(newEventModalElement);
+                        if (modalInstance) modalInstance.hide();
+                    }
+                    document.getElementById('newEventForm').reset();
+                    console.log('Event form reset.');
+
+                }).catch(e => {
+                    console.error('Error parsing new event response or updating UI:', e);
+                    alert('Event saved, but failed to update list. Check console for details.');
+                });
+            } else {
+                return response.json().then(errorData => {
+                    console.error('Event save error details:', errorData);
+                    let errorMessage = 'An unknown error occurred.';
+                    if (errorData.detail) {
+                        if (Array.isArray(errorData.detail)) {
+                            errorMessage = errorData.detail.map(err => {
+                                let msg = err.msg;
+                                if (err.loc && err.loc.length > 0) {
+                                    msg = `${err.loc.join('.')}: ${msg}`;
+                                }
+                                return msg;
+                            }).join('\n');
+                        } else {
+                            errorMessage = errorData.detail;
+                        }
+                    } else if (errorData.error) {
+                        if (typeof errorData.error === 'string') {
+                            errorMessage = errorData.error;
+                        } else if (Array.isArray(errorData.error)) {
+                            errorMessage = errorData.error.map(err => {
+                                let msg = err.msg;
+                                if (err.loc && err.loc.length > 0) {
+                                    msg = `${err.loc.join('.')}: ${msg}`;
+                                }
+                                return msg;
+                            }).join('\n');
+                        } else if (typeof errorData.error === 'object' && errorData.error.detail) {
+                            errorMessage = errorData.error.detail;
+                        }
+                    }
+                    alert('Error saving event: ' + errorMessage + '\nCheck console for details.');
+                }).catch(e => {
+                    console.error('Error parsing event save error response:', e);
+                    alert('Error saving event: Could not parse error response. Check console for details.');
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error during event save:', error);
+            alert('Error saving event: Network error. Check console for details.');
+        });
+    });
+});
+</script>
+{% endblock %} 
