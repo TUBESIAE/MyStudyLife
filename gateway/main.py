@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 import httpx
 
 app = FastAPI()
@@ -21,3 +21,10 @@ async def proxy(service: str, path: str, request: Request):
     async with httpx.AsyncClient() as client:
         resp = await client.request(method, url, headers=headers, content=data)
         return resp.json()
+
+@app.post("/jadwal")
+async def create_jadwal(
+    jadwal: JadwalSchema,
+    user: str = Depends(get_current_user)
+):
+    pass

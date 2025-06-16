@@ -21,6 +21,8 @@ async def health_check():
 async def register(user: UserIn):
     try:
         return register_user(user)
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(f"Error in register: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -30,6 +32,8 @@ async def register(user: UserIn):
 async def login(user: UserIn):
     try:
         return login_user(user)
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(f"Error in login: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -43,6 +47,8 @@ async def read_users_me(authorization: str = Header(default=None)):
         token = authorization.split(" ")[1]  # Ambil token setelah "Bearer "
         user = get_current_user(token)
         return {"username": user.username, "id": user.id}
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(f"Error in read_users_me: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

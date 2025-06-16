@@ -1,10 +1,11 @@
 # schemas.py
 from typing import Optional
 from pydantic import BaseModel
+from datetime import datetime
 
 class ScheduleBase(BaseModel):
     title: str
-    time: str
+    time: datetime
     location: str
     description: Optional[str] = None
 
@@ -14,6 +15,7 @@ class ScheduleCreate(ScheduleBase):
 class Schedule(ScheduleBase):
     id: int
     user_id: int
+    is_notified: bool
 
     class Config:
         orm_mode = True
