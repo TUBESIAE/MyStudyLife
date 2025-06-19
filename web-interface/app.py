@@ -237,6 +237,94 @@ def create_event():
         logger.error(f"Unexpected error in create_event: {e}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred"}), 500
 
+@app.route('/notes/<int:note_id>', methods=['PUT', 'DELETE'])
+@login_required
+def manage_note(note_id):
+    token = current_user.token
+    if not token:
+        return jsonify({"error": "Authentication token not found"}), 401
+
+    try:
+        if request.method == 'PUT':
+            data = request.json
+            response = requests.put(f"{NOTES_SERVICE_URL}/notes/{note_id}",
+                                json=data,
+                                headers={"Authorization": f"Bearer {token}"})
+        elif request.method == 'DELETE':
+            response = requests.delete(f"{NOTES_SERVICE_URL}/notes/{note_id}",
+                                    headers={"Authorization": f"Bearer {token}"})
+            
+        if response.status_code in [200, 204]:
+            logger.info(f"Note {request.method} successful.")
+            if request.method == 'DELETE':
+                return jsonify({"message": "Note deleted successfully"}), 200
+            return jsonify(response.json()), response.status_code
+        else:
+            logger.error(f"Failed to {request.method} note: {response.status_code} - {response.text}")
+            return jsonify({"error": response.json().get("detail", f"Failed to {request.method} note")}), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error in {request.method} note: {e}")
+        return jsonify({"error": "Notes service unavailable"}), 503
+    except Exception as e:
+        logger.error(f"Unexpected error in manage_note: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+@app.route('/events/<int:event_id>', methods=['PUT', 'DELETE'])
+@login_required
+def manage_event(event_id):
+    token = current_user.token
+    if not token:
+        return jsonify({"error": "Authentication token not found"}), 401
+
+    try:
+        if request.method == 'PUT':
+            data = request.json
+            response = requests.put(f"{SCHEDULE_SERVICE_URL}/schedule/{event_id}",
+                                json=data,
+                                headers={"Authorization": f"Bearer {token}"})
+        elif request.method == 'DELETE':
+            response = requests.delete(f"{SCHEDULE_SERVICE_URL}/schedule/{event_id}",
+                                    headers={"Authorization": f"Bearer {token}"})
+            
+        if response.status_code in [200, 204]:
+            logger.info(f"Event {request.method} successful.")
+            if request.method == 'DELETE':
+                return jsonify({"message": "Event deleted successfully"}), 200
+            return jsonify(response.json()), response.status_code
+        else:
+            logger.error(f"Failed to {request.method} event: {response.status_code} - {response.text}")
+            return jsonify({"error": response.json().get("detail", f"Failed to {request.method} event")}), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error in {request.method} event: {e}")
+        return jsonify({"error": "Schedule service unavailable"}), 503
+    except Exception as e:
+        logger.error(f"Unexpected error in manage_event: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+@app.route('/notifications/<int:notification_id>', methods=['DELETE'])
+@login_required
+def delete_notification(notification_id):
+    token = current_user.token
+    if not token:
+        return jsonify({"error": "Authentication token not found"}), 401
+
+    try:
+        response = requests.delete(f"{NOTIFY_SERVICE_URL}/notify/{notification_id}",
+                                headers={"Authorization": f"Bearer {token}"})
+            
+        if response.status_code in [200, 204]:
+            logger.info("Notification deleted successfully.")
+            return jsonify({"message": "Notification deleted successfully"}), 200
+        else:
+            logger.error(f"Failed to delete notification: {response.status_code} - {response.text}")
+            return jsonify({"error": response.json().get("detail", "Failed to delete notification")}), response.status_code
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error deleting notification: {e}")
+        return jsonify({"error": "Notification service unavailable"}), 503
+    except Exception as e:
+        logger.error(f"Unexpected error in delete_notification: {e}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
 @app.route('/logout')
 @login_required
 def logout():
