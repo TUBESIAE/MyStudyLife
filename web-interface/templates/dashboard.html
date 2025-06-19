@@ -319,96 +319,51 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => {
             if (response.ok) {
                 response.json().then(newNote => {
-                    console.log('New note created:', newNote);
                     const notesList = document.getElementById('notesList');
-                    if (!notesList) {
-                        console.error('Error: notesList element not found!');
-                        alert('Note saved, but failed to locate notes list for update.');
-                        return;
-                    }
                     const newNoteHtml = `
                         <div class="card mb-2">
                             <div class="card-body">
                                 <h5 class="card-title">${newNote.title}</h5>
                                 <p class="card-text">${newNote.content}</p>
-                                <small class="text-muted">Created: ${newNote.created_at}</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Created: ${newNote.created_at}</small>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary edit-note-btn" 
+                                                data-note-id="${newNote.id}"
+                                                data-note-title="${newNote.title}"
+                                                data-note-content="${newNote.content}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-note-btn" 
+                                                data-note-id="${newNote.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
-                    // Remove "No notes yet" message if present
                     const noNotesMessage = notesList.querySelector('.text-center.text-muted');
                     if (noNotesMessage && noNotesMessage.textContent.includes('No notes yet')) {
                         notesList.innerHTML = '';
                     }
-                    notesList.insertAdjacentHTML('afterbegin', newNoteHtml); // Add to top
-                    console.log('New note HTML inserted into notesList.');
-
-                    // Close modal and clear form by simulating click on dismiss button
+                    notesList.insertAdjacentHTML('afterbegin', newNoteHtml);
+                    bindNoteEvents();
+                    
                     const newNoteModalElement = document.getElementById('newNoteModal');
                     const dismissButton = newNoteModalElement.querySelector('[data-bs-dismiss="modal"]');
-                    if (dismissButton) {
-                        dismissButton.click();
-                        console.log('Note modal dismiss button clicked.');
-                    } else {
-                        console.warn('Note modal dismiss button not found.');
-                        // Fallback if dismiss button not found
-                        const modalInstance = bootstrap.Modal.getInstance(newNoteModalElement);
-                        if (modalInstance) modalInstance.hide();
-                    }
+                    if (dismissButton) dismissButton.click();
                     document.getElementById('newNoteForm').reset();
-                    console.log('Note form reset.');
-
-                }).catch(e => {
-                    console.error('Error parsing new note response or updating UI:', e);
-                    alert('Note saved, but failed to update list. Check console for details.');
                 });
             } else {
-                return response.json().then(data => {
-                    let errorMessage = 'An error occurred';
-                    if (data.error) {
-                        if (typeof data.error === 'string') {
-                            errorMessage = data.error;
-                        } else if (Array.isArray(data.error)) {
-                            errorMessage = data.error.map(err => {
-                                let msg = err.msg;
-                                if (err.loc && err.loc.length > 0) {
-                                    msg = `${err.loc.join('.')}. ${msg}`;
-                                }
-                                return msg;
-                            }).join('\n');
-                        } else if (data.error && typeof data.error === 'object' && data.error.detail) {
-                            if (Array.isArray(data.error.detail)) {
-                                errorMessage = data.error.detail.map(err => {
-                                    let msg = err.msg;
-                                    if (err.loc && err.loc.length > 0) {
-                                        msg = `${err.loc.join('.')}. ${msg}`;
-                                    }
-                                    return msg;
-                                }).join('\n');
-                            } else {
-                                errorMessage = data.error.detail;
-                            }
-                        }
-                    } else if (data.detail) { // FastAPI error format
-                        if (Array.isArray(data.detail)) {
-                            errorMessage = data.detail.map(err => {
-                                let msg = err.msg;
-                                if (err.loc && err.loc.length > 0) {
-                                    msg = `${err.loc.join('.')}. ${msg}`;
-                                }
-                                return msg;
-                            }).join('\n');
-                        } else {
-                            errorMessage = data.detail;
-                        }
-                    }
-                    alert('Error: ' + errorMessage);
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || data.detail || 'An error occurred'));
                 });
             }
         })
         .catch(error => {
             console.error('Error saving note:', error);
-            alert('Network error or unexpected response. Check console for details.');
+            alert('Network error');
         });
     });
 
@@ -434,118 +389,64 @@ document.addEventListener('DOMContentLoaded', function() {
             })
         })
         .then(response => {
-            console.log('Full event save response:', response);
             if (response.ok) {
                 response.json().then(newEvent => {
-                    console.log('New event created:', newEvent);
                     const scheduleList = document.getElementById('scheduleList');
-                    if (!scheduleList) {
-                        console.error('Error: scheduleList element not found!');
-                        alert('Event saved, but failed to locate schedule list for update.');
-                        return;
-                    }
                     const newEventHtml = `
                         <div class="card mb-2">
                             <div class="card-body">
                                 <h5 class="card-title">${newEvent.title}</h5>
                                 <p class="card-text">${newEvent.description || ''}</p>
-                                <div class="d-flex justify-content-between">
-                                    <small class="text-muted">Date: ${newEvent.date}</small>
-                                    <small class="text-muted">Time: ${newEvent.time}</small>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Date: ${newEvent.date}</small>
+                                        <small class="text-muted ms-2">Time: ${newEvent.time}</small>
+                                        ${newEvent.location ? `<small class="text-muted ms-2">Location: ${newEvent.location}</small>` : ''}
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-success edit-event-btn" 
+                                                data-event-id="${newEvent.id}"
+                                                data-event-title="${newEvent.title}"
+                                                data-event-date="${newEvent.date}"
+                                                data-event-time="${newEvent.time}"
+                                                data-event-location="${newEvent.location}"
+                                                data-event-description="${newEvent.description}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-event-btn" 
+                                                data-event-id="${newEvent.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
-                    // Remove "No events scheduled" message if present
                     const noEventsMessage = scheduleList.querySelector('.text-center.text-muted');
                     if (noEventsMessage && noEventsMessage.textContent.includes('No events scheduled')) {
                         scheduleList.innerHTML = '';
                     }
-                    scheduleList.insertAdjacentHTML('afterbegin', newEventHtml); // Add to top
-                    console.log('New event HTML inserted into scheduleList.');
-
-                    // Close modal and clear form by simulating click on dismiss button
+                    scheduleList.insertAdjacentHTML('afterbegin', newEventHtml);
+                    bindEventEvents();
+                    
                     const newEventModalElement = document.getElementById('newEventModal');
                     const dismissButton = newEventModalElement.querySelector('[data-bs-dismiss="modal"]');
-                    if (dismissButton) {
-                        dismissButton.click();
-                        console.log('Event modal dismiss button clicked.');
-                    } else {
-                        console.warn('Event modal dismiss button not found.');
-                        // Fallback if dismiss button not found
-                        const modalInstance = bootstrap.Modal.getInstance(newEventModalElement);
-                        if (modalInstance) modalInstance.hide();
-                    }
+                    if (dismissButton) dismissButton.click();
                     document.getElementById('newEventForm').reset();
-                    console.log('Event form reset.');
-
-                }).catch(e => {
-                    console.error('Error parsing new event response or updating UI:', e);
-                    alert('Event saved, but failed to update list. Check console for details.');
                 });
             } else {
-                return response.json().then(errorData => {
-                    console.error('Event save error details:', errorData);
-                    let errorMessage = 'An unknown error occurred.';
-                    if (errorData.detail) {
-                        if (Array.isArray(errorData.detail)) {
-                            errorMessage = errorData.detail.map(err => {
-                                let msg = err.msg;
-                                if (err.loc && err.loc.length > 0) {
-                                    msg = `${err.loc.join('.')}: ${msg}`;
-                                }
-                                return msg;
-                            }).join('\n');
-                        } else {
-                            errorMessage = errorData.detail;
-                        }
-                    } else if (errorData.error) {
-                        if (typeof errorData.error === 'string') {
-                            errorMessage = errorData.error;
-                        } else if (Array.isArray(errorData.error)) {
-                            errorMessage = errorData.error.map(err => {
-                                let msg = err.msg;
-                                if (err.loc && err.loc.length > 0) {
-                                    msg = `${err.loc.join('.')}: ${msg}`;
-                                }
-                                return msg;
-                            }).join('\n');
-                        } else if (typeof errorData.error === 'object' && errorData.error.detail) {
-                            errorMessage = errorData.error.detail;
-                        }
-                    }
-                    alert('Error saving event: ' + errorMessage + '\nCheck console for details.');
-                }).catch(e => {
-                    console.error('Error parsing event save error response:', e);
-                    alert('Error saving event: Could not parse error response. Check console for details.');
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || data.detail || 'An error occurred'));
                 });
             }
         })
         .catch(error => {
-            console.error('Fetch error during event save:', error);
-            alert('Error saving event: Network error. Check console for details.');
+            console.error('Error saving event:', error);
+            alert('Network error');
         });
     });
-});
-</script>
 
-    // Edit Note Button Click
-    document.querySelectorAll('.edit-note-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const noteId = this.getAttribute('data-note-id');
-            const noteTitle = this.getAttribute('data-note-title');
-            const noteContent = this.getAttribute('data-note-content');
-            
-            document.getElementById('editNoteId').value = noteId;
-            document.getElementById('editNoteTitle').value = noteTitle;
-            document.getElementById('editNoteContent').value = noteContent;
-            
-            const editNoteModal = new bootstrap.Modal(document.getElementById('editNoteModal'));
-            editNoteModal.show();
-        });
-    });
-    
-    // Update Note Button Click
+    // Update Note
     document.getElementById('updateNoteBtn').addEventListener('click', function() {
         const noteId = document.getElementById('editNoteId').value;
         const title = document.getElementById('editNoteTitle').value;
@@ -563,22 +464,17 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (response.ok) {
-                return response.json().then(updatedNote => {
-                    console.log('Note updated:', updatedNote);
-                    
-                    // Find and update the note in the UI
+                response.json().then(updatedNote => {
                     const noteCard = document.querySelector(`.edit-note-btn[data-note-id="${noteId}"]`).closest('.card');
                     if (noteCard) {
                         noteCard.querySelector('.card-title').textContent = updatedNote.title;
                         noteCard.querySelector('.card-text').textContent = updatedNote.content;
                         
-                        // Update the data attributes for future edits
                         const editBtn = noteCard.querySelector('.edit-note-btn');
                         editBtn.setAttribute('data-note-title', updatedNote.title);
                         editBtn.setAttribute('data-note-content', updatedNote.content);
                     }
                     
-                    // Close the modal
                     const editNoteModalElement = document.getElementById('editNoteModal');
                     const modalInstance = bootstrap.Modal.getInstance(editNoteModalElement);
                     if (modalInstance) modalInstance.hide();
@@ -586,86 +482,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Note updated successfully!');
                 });
             } else {
-                return response.json().then(data => {
-                    let errorMessage = 'An error occurred';
-                    if (data.error) errorMessage = data.error;
-                    alert('Error: ' + errorMessage);
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || 'An error occurred'));
                 });
             }
         })
         .catch(error => {
             console.error('Error updating note:', error);
-            alert('Network error or unexpected response. Check console for details.');
+            alert('Network error');
         });
     });
-    
-    // Delete Note Button Click
-    document.querySelectorAll('.delete-note-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const noteId = this.getAttribute('data-note-id');
-            if (confirm('Are you sure you want to delete this note?')) {
-                fetch(`/notes/${noteId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Remove the note from the UI
-                        const noteCard = this.closest('.card');
-                        if (noteCard) noteCard.remove();
-                        
-                        // Check if there are no more notes and show the "No notes yet" message
-                        const notesList = document.getElementById('notesList');
-                        if (notesList.children.length === 0) {
-                            notesList.innerHTML = `
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-info-circle me-2"></i>No notes yet
-                                </div>
-                            `;
-                        }
-                        
-                        alert('Note deleted successfully!');
-                    } else {
-                        return response.json().then(data => {
-                            let errorMessage = 'An error occurred';
-                            if (data.error) errorMessage = data.error;
-                            alert('Error: ' + errorMessage);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting note:', error);
-                    alert('Network error or unexpected response. Check console for details.');
-                });
-            }
-        });
-    });
-    
-    // Edit Event Button Click
-    document.querySelectorAll('.edit-event-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const eventId = this.getAttribute('data-event-id');
-            const eventTitle = this.getAttribute('data-event-title');
-            const eventDate = this.getAttribute('data-event-date');
-            const eventTime = this.getAttribute('data-event-time');
-            const eventLocation = this.getAttribute('data-event-location');
-            const eventDescription = this.getAttribute('data-event-description');
-            
-            document.getElementById('editEventId').value = eventId;
-            document.getElementById('editEventTitle').value = eventTitle;
-            document.getElementById('editEventDate').value = eventDate;
-            document.getElementById('editEventTime').value = eventTime;
-            document.getElementById('editEventLocation').value = eventLocation;
-            document.getElementById('editEventDescription').value = eventDescription;
-            
-            const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
-            editEventModal.show();
-        });
-    });
-    
-    // Update Event Button Click
+
+    // Update Event
     document.getElementById('updateEventBtn').addEventListener('click', function() {
         const eventId = document.getElementById('editEventId').value;
         const title = document.getElementById('editEventTitle').value;
@@ -689,25 +517,12 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (response.ok) {
-                return response.json().then(updatedEvent => {
-                    console.log('Event updated:', updatedEvent);
-                    
-                    // Find and update the event in the UI
+                response.json().then(updatedEvent => {
                     const eventCard = document.querySelector(`.edit-event-btn[data-event-id="${eventId}"]`).closest('.card');
                     if (eventCard) {
                         eventCard.querySelector('.card-title').textContent = updatedEvent.title;
                         eventCard.querySelector('.card-text').textContent = updatedEvent.description || '';
                         
-                        // Update date and time display
-                        const dateTimeContainer = eventCard.querySelector('.d-flex.justify-content-between');
-                        if (dateTimeContainer) {
-                            const dateElement = dateTimeContainer.querySelector('small:nth-child(1)');
-                            const timeElement = dateTimeContainer.querySelector('small:nth-child(2)');
-                            if (dateElement) dateElement.textContent = `Date: ${updatedEvent.date}`;
-                            if (timeElement) timeElement.textContent = `Time: ${updatedEvent.time}`;
-                        }
-                        
-                        // Update the data attributes for future edits
                         const editBtn = eventCard.querySelector('.edit-event-btn');
                         editBtn.setAttribute('data-event-title', updatedEvent.title);
                         editBtn.setAttribute('data-event-date', updatedEvent.date);
@@ -716,7 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         editBtn.setAttribute('data-event-description', updatedEvent.description || '');
                     }
                     
-                    // Close the modal
                     const editEventModalElement = document.getElementById('editEventModal');
                     const modalInstance = bootstrap.Modal.getInstance(editEventModalElement);
                     if (modalInstance) modalInstance.hide();
@@ -724,105 +538,198 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Event updated successfully!');
                 });
             } else {
-                return response.json().then(data => {
-                    let errorMessage = 'An error occurred';
-                    if (data.error) errorMessage = data.error;
-                    alert('Error: ' + errorMessage);
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || 'An error occurred'));
                 });
             }
         })
         .catch(error => {
             console.error('Error updating event:', error);
-            alert('Network error or unexpected response. Check console for details.');
+            alert('Network error');
         });
     });
-    
-    // Delete Event Button Click
-    document.querySelectorAll('.delete-event-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const eventId = this.getAttribute('data-event-id');
-            if (confirm('Are you sure you want to delete this event?')) {
-                fetch(`/events/${eventId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Remove the event from the UI
-                        const eventCard = this.closest('.card');
-                        if (eventCard) eventCard.remove();
-                        
-                        // Check if there are no more events and show the "No events scheduled" message
-                        const scheduleList = document.getElementById('scheduleList');
-                        if (scheduleList.children.length === 0) {
-                            scheduleList.innerHTML = `
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-info-circle me-2"></i>No events scheduled
-                                </div>
-                            `;
-                        }
-                        
-                        alert('Event deleted successfully!');
-                    } else {
-                        return response.json().then(data => {
-                            let errorMessage = 'An error occurred';
-                            if (data.error) errorMessage = data.error;
-                            alert('Error: ' + errorMessage);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting event:', error);
-                    alert('Network error or unexpected response. Check console for details.');
-                });
-            }
+
+    // Bind Note Events
+    function bindNoteEvents() {
+        document.querySelectorAll('.edit-note-btn').forEach(button => {
+            button.removeEventListener('click', editNoteHandler);
+            button.addEventListener('click', editNoteHandler);
         });
-    });
-    
-    // Delete Notification Button Click
-    document.querySelectorAll('.delete-notification-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const notificationId = this.getAttribute('data-notification-id');
-            if (confirm('Are you sure you want to delete this notification?')) {
-                fetch(`/notifications/${notificationId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        // Remove the notification from the UI
-                        const notificationItem = this.closest('.notification-item');
-                        if (notificationItem) notificationItem.remove();
-                        
-                        // Check if there are no more notifications and show the "No notifications" message
-                        const notificationsList = document.getElementById('notificationsList');
-                        if (notificationsList.children.length === 0) {
-                            notificationsList.innerHTML = `
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-info-circle me-2"></i>No notifications
-                                </div>
-                            `;
-                        }
-                        
-                        alert('Notification deleted successfully!');
-                    } else {
-                        return response.json().then(data => {
-                            let errorMessage = 'An error occurred';
-                            if (data.error) errorMessage = data.error;
-                            alert('Error: ' + errorMessage);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting notification:', error);
-                    alert('Network error or unexpected response. Check console for details.');
-                });
-            }
+        
+        document.querySelectorAll('.delete-note-btn').forEach(button => {
+            button.removeEventListener('click', deleteNoteHandler);
+            button.addEventListener('click', deleteNoteHandler);
         });
-    });
+    }
+
+    // Bind Event Events
+    function bindEventEvents() {
+        document.querySelectorAll('.edit-event-btn').forEach(button => {
+            button.removeEventListener('click', editEventHandler);
+            button.addEventListener('click', editEventHandler);
+        });
+        
+        document.querySelectorAll('.delete-event-btn').forEach(button => {
+            button.removeEventListener('click', deleteEventHandler);
+            button.addEventListener('click', deleteEventHandler);
+        });
+    }
+
+    // Bind Notification Events
+    function bindNotificationEvents() {
+        document.querySelectorAll('.delete-notification-btn').forEach(button => {
+            button.removeEventListener('click', deleteNotificationHandler);
+            button.addEventListener('click', deleteNotificationHandler);
+        });
+    }
+
+    function editNoteHandler() {
+        const noteId = this.getAttribute('data-note-id');
+        const noteTitle = this.getAttribute('data-note-title');
+        const noteContent = this.getAttribute('data-note-content');
+        
+        document.getElementById('editNoteId').value = noteId;
+        document.getElementById('editNoteTitle').value = noteTitle;
+        document.getElementById('editNoteContent').value = noteContent;
+        
+        const editNoteModal = new bootstrap.Modal(document.getElementById('editNoteModal'));
+        editNoteModal.show();
+    }
+
+    function deleteNoteHandler() {
+        const noteId = this.getAttribute('data-note-id');
+        if (confirm('Are you sure you want to delete this note?')) {
+            fetch(`/notes/${noteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const noteCard = this.closest('.card');
+                    if (noteCard) noteCard.remove();
+                    
+                    const notesList = document.getElementById('notesList');
+                    if (notesList.children.length === 0) {
+                        notesList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No notes yet
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Note deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting note:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    function editEventHandler() {
+        const eventId = this.getAttribute('data-event-id');
+        const eventTitle = this.getAttribute('data-event-title');
+        const eventDate = this.getAttribute('data-event-date');
+        const eventTime = this.getAttribute('data-event-time');
+        const eventLocation = this.getAttribute('data-event-location');
+        const eventDescription = this.getAttribute('data-event-description');
+        
+        document.getElementById('editEventId').value = eventId;
+        document.getElementById('editEventTitle').value = eventTitle;
+        document.getElementById('editEventDate').value = eventDate;
+        document.getElementById('editEventTime').value = eventTime;
+        document.getElementById('editEventLocation').value = eventLocation;
+        document.getElementById('editEventDescription').value = eventDescription;
+        
+        const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+        editEventModal.show();
+    }
+
+    function deleteEventHandler() {
+        const eventId = this.getAttribute('data-event-id');
+        if (confirm('Are you sure you want to delete this event?')) {
+            fetch(`/events/${eventId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const eventCard = this.closest('.card');
+                    if (eventCard) eventCard.remove();
+                    
+                    const scheduleList = document.getElementById('scheduleList');
+                    if (scheduleList.children.length === 0) {
+                        scheduleList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No events scheduled
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Event deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting event:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    function deleteNotificationHandler() {
+        const notificationId = this.getAttribute('data-notification-id');
+        if (confirm('Are you sure you want to delete this notification?')) {
+            fetch(`/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const notificationItem = this.closest('.notification-item');
+                    if (notificationItem) notificationItem.remove();
+                    
+                    const notificationsList = document.getElementById('notificationsList');
+                    if (notificationsList.children.length === 0) {
+                        notificationsList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No notifications
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Notification deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting notification:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    // Initial binding
+    bindNoteEvents();
+    bindEventEvents();
+    bindNotificationEvents();
+});
 </script>
 {% endblock %}
