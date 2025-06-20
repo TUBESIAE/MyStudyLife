@@ -1,6 +1,28 @@
 version: "3.9"
 
 services:
+  web-interface:
+    build: ./web-interface
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - NOTES_SERVICE_URL=http://notes-service:8000
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8000
+      - NOTIFY_SERVICE_URL=http://notify-service:8000
+    volumes:
+      - ./web-interface:/app
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      notes-service:
+        condition: service_healthy
+      schedule-service:
+        condition: service_healthy
+      notify-service:
+        condition: service_healthy
+
   auth-service:
     build: ./auth-service
     ports:

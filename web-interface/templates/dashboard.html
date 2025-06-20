@@ -1,0 +1,735 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MyStudyLife{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        </h1>
+        <p class="lead">Welcome back, {{ current_user.username }}!</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Notes Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-sticky-note me-2"></i>Notes
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newNoteModal">
+                        <i class="fas fa-plus me-2"></i>New Note
+                    </button>
+                </div>
+                <div id="notesList">
+                    {% if notes %}
+                        {% for note in notes %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ note.title }}</h5>
+                                <p class="card-text">{{ note.content }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Created: {{ note.created_at }}</small>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary edit-note-btn" 
+                                                data-note-id="{{ note.id }}"
+                                                data-note-title="{{ note.title }}"
+                                                data-note-content="{{ note.content }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-note-btn" 
+                                                data-note-id="{{ note.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No notes yet
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Section -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>Schedule
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#newEventModal">
+                        <i class="fas fa-plus me-2"></i>New Event
+                    </button>
+                </div>
+                <div id="scheduleList">
+                    {% if schedule %}
+                        {% for event in schedule %}
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ event.title }}</h5>
+                                <p class="card-text">{{ event.description }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Date: {{ event.date }}</small>
+                                        <small class="text-muted ms-2">Time: {{ event.time }}</small>
+                                        {% if event.location %}
+                                        <small class="text-muted ms-2">Location: {{ event.location }}</small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-success edit-event-btn" 
+                                                data-event-id="{{ event.id }}"
+                                                data-event-title="{{ event.title }}"
+                                                data-event-date="{{ event.date }}"
+                                                data-event-time="{{ event.time }}"
+                                                data-event-location="{{ event.location }}"
+                                                data-event-description="{{ event.description }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-event-btn" 
+                                                data-event-id="{{ event.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No events scheduled
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Notifications Section -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bell me-2"></i>Notifications
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="notificationsList">
+                    {% if notifications %}
+                        {% for notification in notifications %}
+                        <div class="alert alert-info mb-2 notification-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ notification.title }}</h6>
+                                    <p class="mb-1">{{ notification.message }}</p>
+                                    <small class="text-muted">
+                                        Scheduled: {{ notification.scheduled_time }}
+                                    </small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger delete-notification-btn" 
+                                        data-notification-id="{{ notification.id }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>No notifications
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Note Modal -->
+<div class="modal fade" id="newNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newNoteForm">
+                    <div class="mb-3">
+                        <label for="noteTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="noteTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="noteContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="noteContent" rows="4" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNoteBtn">Save Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Note Modal -->
+<div class="modal fade" id="editNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editNoteForm">
+                    <input type="hidden" id="editNoteId">
+                    <div class="mb-3">
+                        <label for="editNoteTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editNoteTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNoteContent" class="form-label">Content</label>
+                        <textarea class="form-control" id="editNoteContent" rows="4" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateNoteBtn">Update Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Event Modal -->
+<div class="modal fade" id="newEventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newEventForm">
+                    <div class="mb-3">
+                        <label for="eventTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="eventTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="eventDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="eventTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventLocation" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="eventLocation" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="eventDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveEventBtn">Save Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Event Modal -->
+<div class="modal fade" id="editEventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Event</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editEventForm">
+                    <input type="hidden" id="editEventId">
+                    <div class="mb-3">
+                        <label for="editEventTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="editEventTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="editEventDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="editEventTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventLocation" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="editEventLocation" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editEventDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="updateEventBtn">Update Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save Note
+    document.getElementById('saveNoteBtn').addEventListener('click', function() {
+        const title = document.getElementById('noteTitle').value;
+        const content = document.getElementById('noteContent').value;
+        
+        fetch('/notes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                content: content
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json().then(newNote => {
+                    const notesList = document.getElementById('notesList');
+                    const newNoteHtml = `
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">${newNote.title}</h5>
+                                <p class="card-text">${newNote.content}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Created: ${newNote.created_at}</small>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary edit-note-btn" 
+                                                data-note-id="${newNote.id}"
+                                                data-note-title="${newNote.title}"
+                                                data-note-content="${newNote.content}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-note-btn" 
+                                                data-note-id="${newNote.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    const noNotesMessage = notesList.querySelector('.text-center.text-muted');
+                    if (noNotesMessage && noNotesMessage.textContent.includes('No notes yet')) {
+                        notesList.innerHTML = '';
+                    }
+                    notesList.insertAdjacentHTML('afterbegin', newNoteHtml);
+                    bindNoteEvents();
+                    
+                    const newNoteModalElement = document.getElementById('newNoteModal');
+                    const dismissButton = newNoteModalElement.querySelector('[data-bs-dismiss="modal"]');
+                    if (dismissButton) dismissButton.click();
+                    document.getElementById('newNoteForm').reset();
+                });
+            } else {
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || data.detail || 'An error occurred'));
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error saving note:', error);
+            alert('Network error');
+        });
+    });
+
+    // Save Event
+    document.getElementById('saveEventBtn').addEventListener('click', function() {
+        const title = document.getElementById('eventTitle').value;
+        const date = document.getElementById('eventDate').value;
+        const time = document.getElementById('eventTime').value;
+        const location = document.getElementById('eventLocation').value;
+        const description = document.getElementById('eventDescription').value;
+        
+        fetch('/events', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                date: date,
+                time: time,
+                location: location,
+                description: description
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json().then(newEvent => {
+                    const scheduleList = document.getElementById('scheduleList');
+                    const newEventHtml = `
+                        <div class="card mb-2">
+                            <div class="card-body">
+                                <h5 class="card-title">${newEvent.title}</h5>
+                                <p class="card-text">${newEvent.description || ''}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <small class="text-muted">Date: ${newEvent.date}</small>
+                                        <small class="text-muted ms-2">Time: ${newEvent.time}</small>
+                                        ${newEvent.location ? `<small class="text-muted ms-2">Location: ${newEvent.location}</small>` : ''}
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-success edit-event-btn" 
+                                                data-event-id="${newEvent.id}"
+                                                data-event-title="${newEvent.title}"
+                                                data-event-date="${newEvent.date}"
+                                                data-event-time="${newEvent.time}"
+                                                data-event-location="${newEvent.location}"
+                                                data-event-description="${newEvent.description}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger delete-event-btn" 
+                                                data-event-id="${newEvent.id}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    const noEventsMessage = scheduleList.querySelector('.text-center.text-muted');
+                    if (noEventsMessage && noEventsMessage.textContent.includes('No events scheduled')) {
+                        scheduleList.innerHTML = '';
+                    }
+                    scheduleList.insertAdjacentHTML('afterbegin', newEventHtml);
+                    bindEventEvents();
+                    
+                    const newEventModalElement = document.getElementById('newEventModal');
+                    const dismissButton = newEventModalElement.querySelector('[data-bs-dismiss="modal"]');
+                    if (dismissButton) dismissButton.click();
+                    document.getElementById('newEventForm').reset();
+                });
+            } else {
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || data.detail || 'An error occurred'));
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error saving event:', error);
+            alert('Network error');
+        });
+    });
+
+    // Update Note
+    document.getElementById('updateNoteBtn').addEventListener('click', function() {
+        const noteId = document.getElementById('editNoteId').value;
+        const title = document.getElementById('editNoteTitle').value;
+        const content = document.getElementById('editNoteContent').value;
+        
+        fetch(`/notes/${noteId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                content: content
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json().then(updatedNote => {
+                    const noteCard = document.querySelector(`.edit-note-btn[data-note-id="${noteId}"]`).closest('.card');
+                    if (noteCard) {
+                        noteCard.querySelector('.card-title').textContent = updatedNote.title;
+                        noteCard.querySelector('.card-text').textContent = updatedNote.content;
+                        
+                        const editBtn = noteCard.querySelector('.edit-note-btn');
+                        editBtn.setAttribute('data-note-title', updatedNote.title);
+                        editBtn.setAttribute('data-note-content', updatedNote.content);
+                    }
+                    
+                    const editNoteModalElement = document.getElementById('editNoteModal');
+                    const modalInstance = bootstrap.Modal.getInstance(editNoteModalElement);
+                    if (modalInstance) modalInstance.hide();
+                    
+                    alert('Note updated successfully!');
+                });
+            } else {
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || 'An error occurred'));
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating note:', error);
+            alert('Network error');
+        });
+    });
+
+    // Update Event
+    document.getElementById('updateEventBtn').addEventListener('click', function() {
+        const eventId = document.getElementById('editEventId').value;
+        const title = document.getElementById('editEventTitle').value;
+        const date = document.getElementById('editEventDate').value;
+        const time = document.getElementById('editEventTime').value;
+        const location = document.getElementById('editEventLocation').value;
+        const description = document.getElementById('editEventDescription').value;
+        
+        fetch(`/events/${eventId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: title,
+                date: date,
+                time: time,
+                location: location,
+                description: description
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                response.json().then(updatedEvent => {
+                    const eventCard = document.querySelector(`.edit-event-btn[data-event-id="${eventId}"]`).closest('.card');
+                    if (eventCard) {
+                        eventCard.querySelector('.card-title').textContent = updatedEvent.title;
+                        eventCard.querySelector('.card-text').textContent = updatedEvent.description || '';
+                        
+                        const editBtn = eventCard.querySelector('.edit-event-btn');
+                        editBtn.setAttribute('data-event-title', updatedEvent.title);
+                        editBtn.setAttribute('data-event-date', updatedEvent.date);
+                        editBtn.setAttribute('data-event-time', updatedEvent.time);
+                        editBtn.setAttribute('data-event-location', updatedEvent.location);
+                        editBtn.setAttribute('data-event-description', updatedEvent.description || '');
+                    }
+                    
+                    const editEventModalElement = document.getElementById('editEventModal');
+                    const modalInstance = bootstrap.Modal.getInstance(editEventModalElement);
+                    if (modalInstance) modalInstance.hide();
+                    
+                    alert('Event updated successfully!');
+                });
+            } else {
+                response.json().then(data => {
+                    alert('Error: ' + (data.error || 'An error occurred'));
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error updating event:', error);
+            alert('Network error');
+        });
+    });
+
+    // Bind Note Events
+    function bindNoteEvents() {
+        document.querySelectorAll('.edit-note-btn').forEach(button => {
+            button.removeEventListener('click', editNoteHandler);
+            button.addEventListener('click', editNoteHandler);
+        });
+        
+        document.querySelectorAll('.delete-note-btn').forEach(button => {
+            button.removeEventListener('click', deleteNoteHandler);
+            button.addEventListener('click', deleteNoteHandler);
+        });
+    }
+
+    // Bind Event Events
+    function bindEventEvents() {
+        document.querySelectorAll('.edit-event-btn').forEach(button => {
+            button.removeEventListener('click', editEventHandler);
+            button.addEventListener('click', editEventHandler);
+        });
+        
+        document.querySelectorAll('.delete-event-btn').forEach(button => {
+            button.removeEventListener('click', deleteEventHandler);
+            button.addEventListener('click', deleteEventHandler);
+        });
+    }
+
+    // Bind Notification Events
+    function bindNotificationEvents() {
+        document.querySelectorAll('.delete-notification-btn').forEach(button => {
+            button.removeEventListener('click', deleteNotificationHandler);
+            button.addEventListener('click', deleteNotificationHandler);
+        });
+    }
+
+    function editNoteHandler() {
+        const noteId = this.getAttribute('data-note-id');
+        const noteTitle = this.getAttribute('data-note-title');
+        const noteContent = this.getAttribute('data-note-content');
+        
+        document.getElementById('editNoteId').value = noteId;
+        document.getElementById('editNoteTitle').value = noteTitle;
+        document.getElementById('editNoteContent').value = noteContent;
+        
+        const editNoteModal = new bootstrap.Modal(document.getElementById('editNoteModal'));
+        editNoteModal.show();
+    }
+
+    function deleteNoteHandler() {
+        const noteId = this.getAttribute('data-note-id');
+        if (confirm('Are you sure you want to delete this note?')) {
+            fetch(`/notes/${noteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const noteCard = this.closest('.card');
+                    if (noteCard) noteCard.remove();
+                    
+                    const notesList = document.getElementById('notesList');
+                    if (notesList.children.length === 0) {
+                        notesList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No notes yet
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Note deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting note:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    function editEventHandler() {
+        const eventId = this.getAttribute('data-event-id');
+        const eventTitle = this.getAttribute('data-event-title');
+        const eventDate = this.getAttribute('data-event-date');
+        const eventTime = this.getAttribute('data-event-time');
+        const eventLocation = this.getAttribute('data-event-location');
+        const eventDescription = this.getAttribute('data-event-description');
+        
+        document.getElementById('editEventId').value = eventId;
+        document.getElementById('editEventTitle').value = eventTitle;
+        document.getElementById('editEventDate').value = eventDate;
+        document.getElementById('editEventTime').value = eventTime;
+        document.getElementById('editEventLocation').value = eventLocation;
+        document.getElementById('editEventDescription').value = eventDescription;
+        
+        const editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+        editEventModal.show();
+    }
+
+    function deleteEventHandler() {
+        const eventId = this.getAttribute('data-event-id');
+        if (confirm('Are you sure you want to delete this event?')) {
+            fetch(`/events/${eventId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const eventCard = this.closest('.card');
+                    if (eventCard) eventCard.remove();
+                    
+                    const scheduleList = document.getElementById('scheduleList');
+                    if (scheduleList.children.length === 0) {
+                        scheduleList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No events scheduled
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Event deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting event:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    function deleteNotificationHandler() {
+        const notificationId = this.getAttribute('data-notification-id');
+        if (confirm('Are you sure you want to delete this notification?')) {
+            fetch(`/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    const notificationItem = this.closest('.notification-item');
+                    if (notificationItem) notificationItem.remove();
+                    
+                    const notificationsList = document.getElementById('notificationsList');
+                    if (notificationsList.children.length === 0) {
+                        notificationsList.innerHTML = `
+                            <div class="text-center text-muted">
+                                <i class="fas fa-info-circle me-2"></i>No notifications
+                            </div>
+                        `;
+                    }
+                    
+                    alert('Notification deleted successfully!');
+                } else {
+                    response.json().then(data => {
+                        alert('Error: ' + (data.error || 'An error occurred'));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting notification:', error);
+                alert('Network error');
+            });
+        }
+    }
+
+    // Initial binding
+    bindNoteEvents();
+    bindEventEvents();
+    bindNotificationEvents();
+});
+</script>
+{% endblock %}

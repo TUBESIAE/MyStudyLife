@@ -4,6 +4,7 @@ from typing import Dict
 import time
 import httpx
 import jwt
+from datetime import datetime
 
 # Service configuration
 SERVICE_CONFIG = {
@@ -71,18 +72,25 @@ async def validate_token(token: str) -> Dict:
         auth_circuit_breaker.record_failure()
         raise HTTPException(status_code=503, detail="Auth service error")
 
-async def send_notification(user_id: int, message: str, token: str) -> bool:
+async def send_notification(user_id: int, title: str, message: str, scheduled_time: datetime, token: str) -> bool:
     if not notify_circuit_breaker.can_execute():
         return False
 
     try:
         async with httpx.AsyncClient() as client:
+            # Convert datetime to ISO format string for JSON serialization
+            scheduled_time_str = scheduled_time.isoformat()
             response = await client.post(
                 f"{SERVICE_CONFIG['notify_service']}/notify",
-                json={"user_id": user_id, "message": message},
+                json={
+                    "user_id": user_id,
+                    "title": title,
+                    "message": message,
+                    "scheduled_time": scheduled_time_str
+                },
                 headers={"Authorization": f"Bearer {token}"}
             )
-            if response.status_code == 200:
+            if response.status_code in [200, 201]:
                 notify_circuit_breaker.record_success()
                 return True
             else:

@@ -5,7 +5,8 @@ from datetime import datetime
 
 class ScheduleBase(BaseModel):
     title: str
-    time: datetime
+    date: str
+    time: str
     location: str
     description: Optional[str] = None
 
